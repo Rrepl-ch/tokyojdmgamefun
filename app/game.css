@@ -816,7 +816,7 @@
 /* Car select — одна машина по центру, стрелки для переключения */
 .car-select-wrap {
   margin-bottom: 16px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .car-select-center {
@@ -825,6 +825,7 @@
   justify-content: center;
   gap: 16px;
   padding: 8px 0 16px;
+  position: relative;
 }
 
 .car-select-arrow {
@@ -860,8 +861,8 @@
 
 @media (max-width: 480px) {
   .car-select-center {
-    gap: 8px;
-    padding: 8px 4px 16px;
+    gap: 0;
+    padding: 8px 0 16px;
   }
   .car-select-arrow {
     width: 44px;
@@ -871,9 +872,27 @@
     background: rgba(0, 168, 255, 0.25);
     border-width: 2px;
   }
+  .car-select-arrow-overlay {
+    position: absolute;
+    z-index: 20;
+    top: 50%;
+    transform: translateY(-50%);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
+    background: rgba(0, 20, 40, 0.95);
+    border-color: #00a8ff;
+  }
+  .car-select-arrow-left.car-select-arrow-overlay {
+    left: 4px;
+  }
+  .car-select-arrow-right.car-select-arrow-overlay {
+    right: 4px;
+  }
   .car-select-card {
     width: 200px;
     min-width: 200px;
+  }
+  .car-select-card-selected {
+    box-shadow: 0 0 12px rgba(0, 255, 204, 0.2);
   }
 }
 

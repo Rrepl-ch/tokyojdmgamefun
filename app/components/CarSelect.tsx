@@ -40,7 +40,7 @@ export function CarSelect({
       <div className="car-select-center">
         <button
           type="button"
-          className="car-select-arrow car-select-arrow-left"
+          className="car-select-arrow car-select-arrow-left car-select-arrow-overlay"
           onClick={onPrevCar}
           disabled={!canPrev}
           aria-label="Previous car"
@@ -95,7 +95,7 @@ export function CarSelect({
         </div>
         <button
           type="button"
-          className="car-select-arrow car-select-arrow-right"
+          className="car-select-arrow car-select-arrow-right car-select-arrow-overlay"
           onClick={onNextCar}
           disabled={!canNext}
           aria-label="Next car"
