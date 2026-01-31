@@ -7,7 +7,7 @@ import { CARS } from '@/app/types/cars';
 
 const CONTRACT_DEPLOYED = CRAZY_RACER_CARS_ADDRESS !== '0x0000000000000000000000000000000000000000';
 
-export function useOwnedCars(): { owned: Set<number>; isLoading: boolean } {
+export function useOwnedCars(): { owned: Set<number>; isLoading: boolean; refetch: () => void } {
   const { address } = useAccount();
   const contracts = CARS.map((_, i) => ({
     address: CRAZY_RACER_CARS_ADDRESS,
@@ -33,7 +33,7 @@ export function useOwnedCars(): { owned: Set<number>; isLoading: boolean } {
 
 export function useMintCar(carId: number, onSuccess?: () => void | Promise<void>) {
   const car = CARS[carId];
-  const value = car ? BigInt(Math.floor(parseFloat(car.priceEth || '0') * 1e18)) : 0n;
+  const value = car ? BigInt(Math.floor(parseFloat(car.priceEth || '0') * 1e18)) : BigInt(0);
 
   const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
   const { isLoading: isConfirming, isSuccess } = useWaitForTransactionReceipt({ hash });

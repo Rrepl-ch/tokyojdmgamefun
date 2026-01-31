@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import './game.css';
 import { MainMenu } from './components/MainMenu';
-import { CARS, getCarById } from '@/app/types/cars';
+import { getCarById } from '@/app/types/cars';
 import { useAccount } from 'wagmi';
 
 type Car = {
@@ -24,7 +24,6 @@ const LANES = 6;
 const LANE_WIDTH = ROAD_WIDTH / LANES;
 const SAME_DIR_LANES = [0, 1, 2];
 const OPP_DIR_LANES = [3, 4, 5];
-const SAME_CHANCE = 0.5;
 const OPP_CHANCE = 0.5;
 const CHANGE_CHANCE = 0.2;
 const SPEED_STEP = 0.6;
@@ -141,7 +140,7 @@ export default function GamePage() {
     loadRoad(images.centerLine, '/road/center-line.png');
     loadRoad(images.laneLine, '/road/lane-line.png');
     setTimeout(() => {
-      if (!imagesLoaded && loadedCount < totalImages) setImagesLoaded(true);
+      if (loadedCount < totalImages) setImagesLoaded(true);
     }, 3000);
   }, []);
 
@@ -385,7 +384,7 @@ export default function GamePage() {
           let newX = car.x;
           let newLane = car.lane;
           let newBlinkDir = car.blinkDir;
-          let newBlinkTimer = car.blinkTimer + 1;
+          const newBlinkTimer = car.blinkTimer + 1;
           if (car.targetLane !== car.lane) {
             const targetX = laneCenters[car.targetLane];
             newX += (targetX - car.x) * 0.05;
@@ -424,7 +423,7 @@ export default function GamePage() {
                 x: newX,
                 y: newY,
                 lane: newLane,
-                passed: car.passed,
+                passed: newPassed,
                 blinkDir: newBlinkDir,
                 blinkTimer: newBlinkTimer,
               };

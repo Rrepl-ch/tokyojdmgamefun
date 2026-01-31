@@ -17,7 +17,7 @@ const addressToNickname = new Map<string, string>();
 
 const MAX_LEADERBOARD = 100;
 
-export function getLeaderboard(limit = 20): LeaderboardEntry[] {
+export function getLeaderboard(limit = MAX_LEADERBOARD): LeaderboardEntry[] {
   return [...leaderboardByAddress.values()]
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);

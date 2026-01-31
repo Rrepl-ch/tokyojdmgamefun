@@ -63,7 +63,7 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
   const [showCarSelect, setShowCarSelect] = useState(false);
   const [browsedCarId, setBrowsedCarId] = useState(0);
   const [nickError, setNickError] = useState('');
-  const [nickSuccess, setNickSuccess] = useState(false);
+  const [, setNickSuccess] = useState(false);
   const { address, isConnected } = useAccount();
   const { connect, connectors } = useConnect();
   const { disconnect } = useDisconnect();
@@ -71,7 +71,7 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
   const [avatar, setAvatar] = useState(() => loadAvatar());
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
-  const { owned: contractOwned, isLoading: ownedLoading, refetch: refetchOwned } = useOwnedCars();
+  const { owned: contractOwned, refetch: refetchOwned } = useOwnedCars();
   const { mint, isPending: mintPending, contractDeployed } = useMintCar(browsedCarId, () => {
     refetchOwned();
   });

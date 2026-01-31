@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 
-type LeaderboardEntry = { nickname: string; score: number; address: string; carId: number; timestamp: number };
+type LeaderboardEntry = { nickname: string; score: number; address: string; carId: number; timestamp: number; avatar?: string };
 
 type LeaderboardProps = { onClose: () => void; currentAddress?: string };
 
