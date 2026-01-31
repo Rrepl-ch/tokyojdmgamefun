@@ -5,7 +5,7 @@ import { CRAZY_RACER_CARS_ADDRESS, CRAZY_RACER_CARS_ABI } from '@/app/lib/contra
 
 const chain = process.env.NEXT_PUBLIC_CHAIN === 'sepolia' ? sepolia : base;
 
-const BASE_URL = process.env.NEXT_PUBLIC_URL || 'https://tokyoracer.vercel.app';
+const BASE_URL = process.env.NEXT_PUBLIC_URL || 'https://tokyojdm.vercel.app';
 
 const CAR_METADATA: Record<
   number,

@@ -166,7 +166,7 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
     <div className="main-menu">
       {!isConnected ? (
         <div className="welcome-overlay">
-          <h1 className="welcome-title">Tokyo Racer</h1>
+          <h1 className="welcome-title">Tokyo JDM</h1>
           <p className="welcome-text">Connect your wallet to play</p>
           {connectors.length > 0 && (
             <div className="welcome-connect">
@@ -198,7 +198,7 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
         </div>
       )}
 
-      <h1 className="main-menu-title">Tokyo Racer</h1>
+      <h1 className="main-menu-title">Tokyo JDM</h1>
 
       <div className="main-menu-nick">
         <input

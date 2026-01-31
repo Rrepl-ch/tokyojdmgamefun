@@ -8,7 +8,7 @@ import { injected, coinbaseWallet, walletConnect } from "wagmi/connectors";
 import { MiniAppProvider } from "./providers/MiniAppProvider";
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "d573c8a861fbe6e691c284093d3d3b53";
-const appUrl = process.env.NEXT_PUBLIC_URL || "https://tokyoracer.vercel.app";
+const appUrl = process.env.NEXT_PUBLIC_URL || "https://tokyojdm.vercel.app";
 
 const config = createConfig({
   chains: [base, sepolia],
@@ -18,7 +18,7 @@ const config = createConfig({
   },
   connectors: [
     farcasterMiniApp(),
-    coinbaseWallet({ appName: "Tokyo Racer", appLogoUrl: `${appUrl}/cars/icon.png` }),
+    coinbaseWallet({ appName: "Tokyo JDM", appLogoUrl: `${appUrl}/cars/icon.png` }),
     walletConnect({ projectId }),
     injected(),
   ],

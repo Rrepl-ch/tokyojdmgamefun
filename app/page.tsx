@@ -605,7 +605,7 @@ export default function GamePage() {
       )}
       {!gameActive && (
         <div className="start-screen">
-          <h2>Tokyo Racer</h2>
+          <h2>Tokyo JDM</h2>
           <p>{Math.floor(score)}</p>
           <button type="button" onClick={resetGame} className="start-button">
             {score > 0 ? 'RESTART' : 'START'}
