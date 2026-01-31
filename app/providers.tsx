@@ -9,12 +9,13 @@ import { MiniAppProvider } from "./providers/MiniAppProvider";
 
 const projectId = process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "d573c8a861fbe6e691c284093d3d3b53";
 const appUrl = process.env.NEXT_PUBLIC_URL || "https://crazyracer.app";
-const useSepolia = process.env.NEXT_PUBLIC_CHAIN === "sepolia";
-const chain = useSepolia ? sepolia : base;
 
 const config = createConfig({
-  chains: [chain],
-  transports: { [chain.id]: http() },
+  chains: [base, sepolia],
+  transports: {
+    [base.id]: http(),
+    [sepolia.id]: http(),
+  },
   connectors: [
     farcasterMiniApp(),
     coinbaseWallet({ appName: "Crazy Racer", appLogoUrl: `${appUrl}/cars/icon.png` }),
