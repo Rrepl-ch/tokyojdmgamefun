@@ -7,6 +7,7 @@ import { Leaderboard } from './Leaderboard';
 import { CARS } from '@/app/types/cars';
 import { useOwnedCars, useMintCar } from '@/app/lib/useCrazyRacerContract';
 import { useNicknameStatus, useMintNickname } from '@/app/lib/useNicknameContract';
+import { useMiniApp } from '@/app/providers/MiniAppProvider';
 
 const STORAGE_OWNED = 'jdm_owned_cars';
 const STORAGE_SELECTED = 'jdm_selected_car';
@@ -49,7 +50,7 @@ type MainMenuProps = {
   nickname: string;
   setNickname: (v: string) => void;
   onNicknameSubmit: () => Promise<boolean>;
-  onPlay: (carId: number, nick: string) => void;
+  onPlay: (carId: number, nick: string, avatar?: string) => void;
   menuKey?: number;
 };
 
@@ -58,6 +59,7 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
   const [selectedCarId, setSelectedCarId] = useState(loadSelectedCarId);
   const [showLeaderboard, setShowLeaderboard] = useState(false);
   const [showCarSelect, setShowCarSelect] = useState(false);
+  const [showNickMintConfirm, setShowNickMintConfirm] = useState(false);
   const [browsedCarId, setBrowsedCarId] = useState(0);
   const [nickError, setNickError] = useState('');
   const [, setNickSuccess] = useState(false);
@@ -73,6 +75,8 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
     refetchOwned();
   });
 
+  const { context: miniAppContext } = useMiniApp();
+  const baseUser = miniAppContext?.user;
   const { hasNickname, nickname: contractNickname, refetch: refetchNick, contractDeployed: nickContractDeployed } = useNicknameStatus();
   const { mint: mintNickname, isPending: mintNickPending, error: mintNickError } = useMintNickname(() => refetchNick());
 
@@ -165,7 +169,7 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
     else setNickError('Nickname taken or invalid. Choose another.');
   }, [onNicknameSubmit, isConnected]);
 
-  const handleMintNickname = useCallback(() => {
+  const handleMintNicknameClick = useCallback(() => {
     setNickError('');
     const trimmed = nickname.trim();
     if (trimmed.length < 2 || trimmed.length > 20) {
@@ -176,21 +180,33 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
       setNickError('Only letters, numbers and underscore');
       return;
     }
-    mintNickname(trimmed);
+    setShowNickMintConfirm(true);
+  }, [nickname]);
+
+  const handleMintNicknameConfirm = useCallback(() => {
+    const trimmed = nickname.trim();
+    if (trimmed.length >= 2 && trimmed.length <= 20) {
+      mintNickname(trimmed);
+      setShowNickMintConfirm(false);
+    }
   }, [nickname, mintNickname]);
 
-  const effectiveNickname = nickContractDeployed && hasNickname && contractNickname
-    ? contractNickname
-    : nickname.trim() || 'Player';
+  const effectiveNickname = baseUser
+    ? (baseUser.displayName || baseUser.username || 'Player')
+    : nickContractDeployed && hasNickname && contractNickname
+      ? contractNickname
+      : nickname.trim() || 'Player';
+
+  const effectiveAvatar = baseUser?.pfpUrl || avatar;
 
   const canPlay = ownedCarIds.has(selectedCarId) && (
-    !nickContractDeployed || hasNickname
+    !!baseUser || !nickContractDeployed || hasNickname
   );
 
   const handlePlay = useCallback(() => {
     setNickError('');
-    onPlay(selectedCarId, effectiveNickname);
-  }, [effectiveNickname, selectedCarId, onPlay]);
+    onPlay(selectedCarId, effectiveNickname, effectiveAvatar || undefined);
+  }, [effectiveNickname, effectiveAvatar, selectedCarId, onPlay]);
 
   return (
     <div className="main-menu">
@@ -231,7 +247,12 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
       <h1 className="main-menu-title">Tokyo JDM</h1>
 
       <div className="main-menu-nick">
-        {nickContractDeployed && hasNickname ? (
+        {baseUser ? (
+          <div className="main-menu-nick-display">
+            <span className="main-menu-nick-label">Nickname:</span>
+            <span className="main-menu-nick-value">{baseUser.displayName || baseUser.username || '—'}</span>
+          </div>
+        ) : nickContractDeployed && hasNickname ? (
           <div className="main-menu-nick-display">
             <span className="main-menu-nick-label">Nickname:</span>
             <span className="main-menu-nick-value">{contractNickname || '—'}</span>
@@ -246,7 +267,7 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
               onChange={(e) => setNickname(e.target.value)}
               maxLength={20}
             />
-            <button type="button" className="menu-btn small mint-free" onClick={handleMintNickname} disabled={mintNickPending}>
+            <button type="button" className="menu-btn small mint-free" onClick={handleMintNicknameClick} disabled={mintNickPending}>
               {mintNickPending ? 'MINTING…' : 'MINT NICKNAME'}
             </button>
           </>
@@ -270,6 +291,11 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
 
       <div className="main-menu-avatar-wrap">
         <span className="main-menu-avatar-label">Avatar</span>
+        {baseUser?.pfpUrl ? (
+          <div className="main-menu-avatar-circle main-menu-avatar-pfp" title={baseUser.displayName || baseUser.username}>
+            <img src={baseUser.pfpUrl} alt="" referrerPolicy="no-referrer" />
+          </div>
+        ) : (
         <button
           type="button"
           className="main-menu-avatar-circle"
@@ -278,7 +304,8 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
         >
           <span className="main-menu-avatar-emoji">{avatar}</span>
         </button>
-        {showAvatarPicker && (
+        )}
+        {!baseUser && showAvatarPicker && (
           <div className="main-menu-avatar-picker">
             <div className="main-menu-avatar-grid">
               {AVATAR_EMOJIS.map((emoji) => (
@@ -358,6 +385,25 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
             <button type="button" className="menu-btn" onClick={() => setShowCarSelect(false)}>
               CLOSE
             </button>
+          </div>
+        </div>
+      )}
+      {showNickMintConfirm && (
+        <div className="menu-overlay" onClick={() => setShowNickMintConfirm(false)}>
+          <div className="menu-panel" onClick={(e) => e.stopPropagation()}>
+            <h2 className="menu-title">Confirm nickname mint</h2>
+            <p className="nick-mint-warning">
+              You can mint a nickname only once per wallet. It cannot be changed or transferred later.
+            </p>
+            <p className="nick-mint-preview">Nickname: <strong>{nickname.trim()}</strong></p>
+            <div className="nick-mint-actions">
+              <button type="button" className="menu-btn" onClick={handleMintNicknameConfirm} disabled={mintNickPending}>
+                {mintNickPending ? 'MINTING…' : 'CONFIRM'}
+              </button>
+              <button type="button" className="menu-btn secondary" onClick={() => setShowNickMintConfirm(false)} disabled={mintNickPending}>
+                CANCEL
+              </button>
+            </div>
           </div>
         </div>
       )}

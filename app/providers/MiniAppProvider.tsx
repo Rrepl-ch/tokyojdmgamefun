@@ -24,11 +24,14 @@ export function MiniAppProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const init = async () => {
-      const isInApp = await sdk.isInMiniApp();
-      if (isInApp) {
-        const ctx = await sdk.context;
-        setContext(ctx);
-        await sdk.actions.ready();
+      try {
+        const isInApp = await sdk.isInMiniApp();
+        if (isInApp) {
+          const ctx = await sdk.context;
+          setContext(ctx);
+          await sdk.actions.ready();
+        }
+      } finally {
         setIsReady(true);
       }
     };

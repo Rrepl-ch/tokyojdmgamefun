@@ -562,6 +562,27 @@
   margin-bottom: 12px;
 }
 
+.nick-mint-warning {
+  color: #ffaa44;
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+
+.nick-mint-preview {
+  color: #8888cc;
+  margin-bottom: 20px;
+}
+
+.nick-mint-preview strong {
+  color: #00ffcc;
+}
+
+.nick-mint-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
 .main-menu-avatar-wrap {
   margin-bottom: 16px;
   display: flex;
@@ -601,6 +622,17 @@
 .main-menu-avatar-emoji {
   font-size: 28px;
   line-height: 1;
+}
+
+.main-menu-avatar-pfp {
+  overflow: hidden;
+  cursor: default;
+}
+
+.main-menu-avatar-pfp img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .main-menu-avatar-picker {
@@ -801,7 +833,19 @@
 .leaderboard-avatar {
   font-size: 20px;
   min-width: 28px;
+  width: 28px;
+  height: 28px;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.leaderboard-avatar-img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .leaderboard-nick {

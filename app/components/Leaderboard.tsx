@@ -38,8 +38,14 @@ export function Leaderboard({ onClose, currentAddress }: LeaderboardProps) {
                   className={`leaderboard-row ${e.address.toLowerCase() === addr ? 'leaderboard-row-me' : ''}`}
                 >
                   <span className="leaderboard-rank">#{i + 1}</span>
-                  <span className="leaderboard-avatar">{e.avatar || '😎'}</span>
-                  <span className="leaderboard-nick" title={e.nickname || undefined}>…{e.address.slice(-10)}</span>
+                  <span className="leaderboard-avatar">
+                  {e.avatar && e.avatar.startsWith('http') ? (
+                    <img src={e.avatar} alt="" referrerPolicy="no-referrer" className="leaderboard-avatar-img" />
+                  ) : (
+                    (e.avatar || '😎')
+                  )}
+                </span>
+                  <span className="leaderboard-nick" title={e.address || undefined}>{e.nickname || `…${e.address.slice(-10)}`}</span>
                   <span className="leaderboard-score">{e.score}</span>
                 </li>
               ))

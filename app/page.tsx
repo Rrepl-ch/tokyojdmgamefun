@@ -34,6 +34,7 @@ export default function GamePage() {
   const [screen, setScreen] = useState<'menu' | 'game'>('menu');
   const [gameCarId, setGameCarId] = useState(0);
   const [gameNickname, setGameNickname] = useState('');
+  const [gameAvatar, setGameAvatar] = useState<string>('');
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [score, setScore] = useState(0);
   const [gameActive, setGameActive] = useState(false);
@@ -144,9 +145,10 @@ export default function GamePage() {
     }, 3000);
   }, []);
 
-  const submitScore = useCallback(async (finalScore: number, carId: number, nick: string, addr: string | undefined) => {
+  const submitScore = useCallback(async (finalScore: number, carId: number, nick: string, addr: string | undefined, avatarOverride?: string) => {
     if (leaderboardSubmittedRef.current || !nick.trim() || !addr) return;
     leaderboardSubmittedRef.current = true;
+    const avatar = avatarOverride ?? (typeof window !== 'undefined' ? (localStorage.getItem('crazy_racer_avatar') || '😎') : '😎');
     try {
       await fetch('/api/leaderboard', {
         method: 'POST',
@@ -156,7 +158,7 @@ export default function GamePage() {
           score: Math.floor(finalScore),
           address: addr,
           carId,
-          avatar: typeof window !== 'undefined' ? (localStorage.getItem('crazy_racer_avatar') || '😎') : '😎',
+          avatar,
         }),
       });
     } catch {
@@ -164,9 +166,10 @@ export default function GamePage() {
     }
   }, []);
 
-  const startGame = useCallback((carId: number, nick: string) => {
+  const startGame = useCallback((carId: number, nick: string, avatar?: string) => {
     setGameCarId(carId);
     setGameNickname(nick);
+    setGameAvatar(avatar ?? '');
     const car = getCarById(carId);
     scoreMultiplierRef.current = car?.scoreMultiplier ?? 1;
     playerPlaceholderColorRef.current = car?.placeholderColor ?? '#00a8ff';
@@ -522,9 +525,9 @@ export default function GamePage() {
 
   useEffect(() => {
     if (!gameActive && screen === 'game' && score > 0) {
-      submitScore(score, gameCarId, gameNickname, address);
+      submitScore(score, gameCarId, gameNickname, address, gameAvatar || undefined);
     }
-  }, [gameActive, screen, score, gameCarId, gameNickname, address, submitScore]);
+  }, [gameActive, screen, score, gameCarId, gameNickname, gameAvatar, address, submitScore]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -574,7 +577,7 @@ export default function GamePage() {
           nickname={nickname}
           setNickname={setNickname}
           onNicknameSubmit={onNicknameSubmit}
-          onPlay={(carId, nick) => startGame(carId, nick || 'Player')}
+          onPlay={(carId, nick, avatar) => startGame(carId, nick || 'Player', avatar)}
         />
       </div>
     );
