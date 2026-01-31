@@ -875,7 +875,7 @@
   .car-select-arrow-overlay {
     position: absolute;
     z-index: 20;
-    top: 55%;
+    top: 78%;
     transform: translateY(-50%);
     box-shadow: 0 2px 12px rgba(0, 0, 0, 0.5);
     background: rgba(0, 20, 40, 0.95);
