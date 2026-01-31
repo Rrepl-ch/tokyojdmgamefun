@@ -17,7 +17,7 @@ export const farcasterConfig = {
     version: "1",
     name: "Tokyo JDM",
     subtitle: "Tunnel racer on Base",
-    description: "Top-down tunnel racer. Distance = score, dodge cars and obstacles.",
+    description: "Top-down tunnel racer. Distance is score, dodge cars and obstacles.",
     screenshotUrls: [`${ROOT_URL}/screenshot-portrait.png`],
     iconUrl: `${ROOT_URL}/cars/icon.png`,
     splashImageUrl: `${ROOT_URL}/cars/splash.png`,
