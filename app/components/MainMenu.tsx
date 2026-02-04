@@ -239,7 +239,11 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
         <>
       {address && (
         <div className="main-menu-wallet">
-          <span>{address.slice(0, 6)}…{address.slice(-4)}</span>
+          <span>
+            {baseUser
+              ? (baseUser.displayName || baseUser.username || 'Connected')
+              : (contractNickname || nickname?.trim() || 'Connected')}
+          </span>
           <button type="button" className="link-btn" onClick={() => disconnect()}>
             Disconnect
           </button>

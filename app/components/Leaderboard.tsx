@@ -45,7 +45,7 @@ export function Leaderboard({ onClose, currentAddress }: LeaderboardProps) {
                     (e.avatar || '😎')
                   )}
                 </span>
-                  <span className="leaderboard-nick" title={e.address || undefined}>{e.nickname || `…${e.address.slice(-10)}`}</span>
+                  <span className="leaderboard-nick">{e.nickname?.trim() || 'Player'}</span>
                   <span className="leaderboard-score">{e.score}</span>
                 </li>
               ))
