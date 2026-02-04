@@ -17,7 +17,7 @@ export async function generateMetadata(): Promise<Metadata> {
       apple: '/icon.png',
     },
     other: {
-      'base:app_id': '697e4c9fc6a03f3fe39cb629',
+      'base:app_id': '6983a406394cf3c20a8af57c',
       "fc:frame": JSON.stringify({
         version: farcasterConfig.miniapp.version,
         imageUrl: farcasterConfig.miniapp.heroImageUrl,
