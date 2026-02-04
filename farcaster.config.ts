@@ -18,7 +18,11 @@ export const farcasterConfig = {
     name: "Tokyo JDM",
     subtitle: "Tunnel racer on Base",
     description: "Top-down tunnel racer. Distance is score, dodge cars and obstacles.",
-    screenshotUrls: [`${ROOT_URL}/splash.png`],
+    screenshotUrls: [
+      `${ROOT_URL}/screenshots/screen1.png`,
+      `${ROOT_URL}/screenshots/screen2.png`,
+      `${ROOT_URL}/screenshots/screen3.png`,
+    ],
     iconUrl: `${ROOT_URL}/icon.png`,
     splashImageUrl: `${ROOT_URL}/splash.png`,
     splashBackgroundColor: "#000000",
