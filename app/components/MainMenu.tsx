@@ -10,7 +10,11 @@ import { Profile } from './Profile';
 import { CARS } from '@/app/types/cars';
 import { useOwnedCars, useMintCar } from '@/app/lib/useCrazyRacerContract';
 import { useNicknameStatus, useMintNickname } from '@/app/lib/useNicknameContract';
+import { useCheckInStatus, useCheckIn } from '@/app/lib/useCheckInContract';
+import { useBonusRace } from '@/app/lib/useBonusRaceContract';
+// import { useScoreRewardClaim } from '@/app/lib/useScoreRewardClaim';
 import { useMiniApp } from '@/app/providers/MiniAppProvider';
+import { getProfileStats, fetchProfileStatsFromApi } from '@/app/lib/profileStats';
 
 const STORAGE_OWNED = 'jdm_owned_cars';
 const STORAGE_SELECTED = 'jdm_selected_car';
@@ -49,11 +53,13 @@ function saveSelected(id: number) {
   localStorage.setItem(STORAGE_SELECTED, String(id));
 }
 
+export type PlayOptions = { bonusRace?: boolean; checkInMultiplier?: number };
+
 type MainMenuProps = {
   nickname: string;
   setNickname: (v: string) => void;
   onNicknameSubmit: () => Promise<boolean>;
-  onPlay: (carId: number, nick: string, avatar?: string) => void;
+  onPlay: (carId: number, nick: string, avatar?: string, options?: PlayOptions) => void;
   menuKey?: number;
 };
 
@@ -71,8 +77,15 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
   const [record, setRecord] = useState<number | null>(null);
   const [avatar, setAvatar] = useState(() => loadAvatar());
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [totalGames, setTotalGames] = useState(0);
+  const [showBonusModal, setShowBonusModal] = useState(false);
+  // const [tokenBalanceWei, setTokenBalanceWei] = useState<string>('0');
+  // fetchTokenBalance, useScoreRewardClaim — отключено (реворды за заезд)
 
   const { owned: contractOwned, refetch: refetchOwned } = useOwnedCars();
+  const { canCheckInToday, streak, refetch: refetchCheckIn } = useCheckInStatus();
+  const { checkIn, isPending: checkInPending, contractDeployed: checkInDeployed } = useCheckIn(refetchCheckIn);
+  const { triggerBonus, isPending: bonusPending, isSuccess: bonusSuccess, contractDeployed: bonusDeployed } = useBonusRace();
   const { mint, isPending: mintPending, contractDeployed } = useMintCar(browsedCarId, () => {
     refetchOwned();
   });
@@ -106,12 +119,19 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
   useEffect(() => {
     if (!address) {
       setRecord(null);
+      setTotalGames(0);
       return;
     }
     fetch(`/api/leaderboard?address=${encodeURIComponent(address)}`)
       .then((r) => r.json())
       .then((data) => setRecord(typeof data.best === 'number' ? data.best : null))
       .catch(() => setRecord(null));
+    const local = getProfileStats(address);
+    setTotalGames(local?.totalGames ?? 0);
+    fetchProfileStatsFromApi(address).then((s) => {
+      if (s) setTotalGames(s.totalGames);
+    });
+    // fetchTokenBalance(); — реворды за заезд отключены
   }, [address, menuKey]);
 
   const refreshRecord = useCallback(() => {
@@ -205,10 +225,23 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
     !!baseUser || !nickContractDeployed || hasNickname
   );
 
+  const checkInMultiplier = streak >= 25 ? 1.5 : streak >= 10 ? 1.25 : 1;
+  const isFifthRace = bonusDeployed && totalGames > 0 && totalGames % 5 === 4;
+
   const handlePlay = useCallback(() => {
     setNickError('');
-    onPlay(selectedCarId, effectiveNickname, effectiveAvatar || undefined);
-  }, [effectiveNickname, effectiveAvatar, selectedCarId, onPlay]);
+    if (isFifthRace) {
+      setShowBonusModal(true);
+      triggerBonus();
+      return;
+    }
+    onPlay(selectedCarId, effectiveNickname, effectiveAvatar || undefined, { checkInMultiplier });
+  }, [effectiveNickname, effectiveAvatar, selectedCarId, onPlay, isFifthRace, triggerBonus, checkInMultiplier]);
+
+  const handleBonusModalPlay = useCallback(() => {
+    setShowBonusModal(false);
+    onPlay(selectedCarId, effectiveNickname, effectiveAvatar || undefined, { bonusRace: true, checkInMultiplier });
+  }, [selectedCarId, effectiveNickname, effectiveAvatar, onPlay, checkInMultiplier]);
 
   return (
     <div className="main-menu">
@@ -334,26 +367,57 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
         Record: {record !== null ? record : '—'}
       </p>
 
+      {/* Реворды за заезд (Tokens + Withdraw) отключены. См. useScoreRewardClaim, tokenBalanceWei, fetchTokenBalance. */}
+
       <div className="main-menu-car">
         <span>{CARS[selectedCarId]?.name ?? '—'}</span>
       </div>
 
-      {canPlay ? (
-        <button type="button" className="menu-btn play-btn" onClick={handlePlay}>
-          PLAY
-        </button>
-      ) : (
-        <div className="main-menu-play-blocked">
-          <button type="button" className="menu-btn play-btn disabled" disabled>
+      <div className="main-menu-play-wrap">
+        {canPlay ? (
+          <button type="button" className="menu-btn play-btn" onClick={handlePlay}>
             PLAY
           </button>
-          <p className="main-menu-play-hint">
-            {!ownedCarIds.has(selectedCarId)
-              ? 'Mint this car first to drive'
-              : nickContractDeployed && !hasNickname
-                ? 'Mint nickname first to play'
-                : 'Mint this car first to drive'}
-          </p>
+        ) : (
+          <div className="main-menu-play-blocked">
+            <button type="button" className="menu-btn play-btn disabled" disabled>
+              PLAY
+            </button>
+            <p className="main-menu-play-hint">
+              {!ownedCarIds.has(selectedCarId)
+                ? 'Mint this car first to drive'
+                : nickContractDeployed && !hasNickname
+                  ? 'Mint nickname first to play'
+                  : 'Mint this car first to drive'}
+            </p>
+          </div>
+        )}
+        {checkInDeployed && isConnected && (
+          <button
+            type="button"
+            className="menu-btn check-in-btn"
+            onClick={() => checkIn()}
+            disabled={!canCheckInToday || checkInPending}
+          >
+            {checkInPending ? '…' : canCheckInToday ? 'Check-in' : 'Done'}
+          </button>
+        )}
+      </div>
+
+      {showBonusModal && (
+        <div className="menu-overlay" onClick={() => {}}>
+          <div className="menu-panel bonus-modal" onClick={(e) => e.stopPropagation()}>
+            {!bonusSuccess ? (
+              <>
+                <p className="bonus-modal-text">Waiting for confirmation…</p>
+                {bonusPending && <div className="bonus-modal-spinner" />}
+              </>
+            ) : (
+              <button type="button" className="menu-btn play-btn" onClick={handleBonusModalPlay}>
+                PLAY
+              </button>
+            )}
+          </div>
         </div>
       )}
 

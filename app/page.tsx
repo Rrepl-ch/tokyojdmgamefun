@@ -168,12 +168,20 @@ export default function GamePage() {
     }
   }, []);
 
-  const startGame = useCallback((carId: number, nick: string, avatar?: string) => {
+  const startGame = useCallback((
+    carId: number,
+    nick: string,
+    avatar?: string,
+    options?: { bonusRace?: boolean; checkInMultiplier?: number }
+  ) => {
     setGameCarId(carId);
     setGameNickname(nick);
     setGameAvatar(avatar ?? '');
     const car = getCarById(carId);
-    scoreMultiplierRef.current = car?.scoreMultiplier ?? 1;
+    const base = car?.scoreMultiplier ?? 1;
+    const checkIn = options?.checkInMultiplier ?? 1;
+    const bonus = options?.bonusRace ? 2.5 : 1;
+    scoreMultiplierRef.current = base * checkIn * bonus;
     playerPlaceholderColorRef.current = car?.placeholderColor ?? '#00a8ff';
     if (imagesRef.current.player && car?.sprite) {
       imagesRef.current.player.src = car.sprite;
@@ -629,6 +637,7 @@ export default function GamePage() {
           <button type="button" onClick={backToMenu} className="start-button secondary">
             MENU
           </button>
+          {/* Реворды за заезд отключены: {score >= 100000 && <p className="start-screen-tokens-hint">Tokens added to your balance</p>} */}
         </div>
       )}
     </div>

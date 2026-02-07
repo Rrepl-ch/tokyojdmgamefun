@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { useDisconnect } from 'wagmi';
 import { CARS } from '@/app/types/cars';
+import { useCheckInStatus } from '@/app/lib/useCheckInContract';
 import {
   getProfileStats,
   getFavoriteCarId,
@@ -96,6 +97,7 @@ export function Profile({
   const [achievementsOpen, setAchievementsOpen] = useState(false);
   const [expandedGroupIds, setExpandedGroupIds] = useState<Set<string>>(new Set());
   const [serverStats, setServerStats] = useState<ProfileStats | null>(null);
+  const { streak, contractDeployed: checkInDeployed } = useCheckInStatus();
 
   useEffect(() => {
     if (!address) return;
@@ -199,6 +201,12 @@ export function Profile({
                 {stats ? stats.totalGames.toLocaleString() : '0'}
               </span>
             </div>
+            {checkInDeployed && address && isOwnProfile && (
+              <div className="profile-stat-inline">
+                <span className="profile-stat-label">Streak</span>
+                <span className="profile-stat-value">{streak.toLocaleString()} days</span>
+              </div>
+            )}
           </div>
         </div>
 

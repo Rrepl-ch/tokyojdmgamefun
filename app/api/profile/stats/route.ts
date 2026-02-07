@@ -5,6 +5,8 @@ import {
   ensureBaseRecordedRedis,
   isProfileDbAvailable,
 } from '@/app/lib/profileStatsDb';
+// import { addPendingBalance, isPendingTokensAvailable } from '@/app/lib/pendingTokensDb';
+// Реворды за заезд (начисление токенов при score >= 100k) — отключены
 
 function isValidAddress(addr: string): boolean {
   return /^0x[a-fA-F0-9]{40}$/.test(String(addr).trim());
@@ -53,6 +55,11 @@ export async function POST(request: NextRequest) {
         carId: update.carId,
         chainId: typeof update.chainId === 'number' ? update.chainId : undefined,
       });
+      // Реворды за заезд отключены: начисление pending balance при score >= 100k
+      // if (update.distance >= 100_000 && isPendingTokensAvailable()) {
+      //   const amountWei = BigInt(Math.floor(update.distance / 120)) * BigInt(1e18);
+      //   if (amountWei > BigInt(0)) await addPendingBalance(addr, amountWei);
+      // }
       return NextResponse.json({ success: true });
     }
 
