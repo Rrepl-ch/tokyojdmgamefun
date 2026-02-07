@@ -399,7 +399,7 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
             onClick={() => checkIn()}
             disabled={!canCheckInToday || checkInPending}
           >
-            {checkInPending ? '…' : canCheckInToday ? 'Чек-ин' : `Стрик ${streak}`}
+            {checkInPending ? '…' : canCheckInToday ? 'Check-in' : `Streak ${streak}`}
           </button>
         )}
       </div>
