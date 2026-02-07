@@ -713,13 +713,24 @@
   font-size: 22px;
 }
 
-/* Check-in: 1/3 width of Play, 1/1.2 height of Play (~62/1.2 ≈ 52px) */
+/* Check-in: в 3 раза уже и в 2 раза ниже, зелёные оттенки */
 .check-in-btn {
-  width: 33.333%;
-  min-height: 52px;
-  padding: 12px 10px;
-  font-size: 14px;
+  width: 11.111%;
+  min-height: 26px;
+  padding: 6px 8px;
+  font-size: 12px;
   margin-top: 8px;
+  background: linear-gradient(45deg, #0d5c2e, #1a8c44);
+  border: 1px solid #22c55e;
+  color: #fff;
+}
+.check-in-btn:hover:not(:disabled) {
+  background: linear-gradient(45deg, #1a8c44, #22c55e);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.4);
+}
+.check-in-btn:disabled {
+  opacity: 0.9;
+  background: linear-gradient(45deg, #14532d, #166534);
 }
 
 .bonus-modal {
