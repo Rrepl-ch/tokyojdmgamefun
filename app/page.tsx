@@ -86,6 +86,7 @@ export default function GamePage() {
   const tabVisibleRef = useRef(true);
   const pausedRef = useRef(false);
   const passedCountRef = useRef(0);
+  const lastFrameTimeRef = useRef<number>(0);
 
   const createImage = (): HTMLImageElement => {
     if (typeof window !== 'undefined') return new Image();
@@ -258,6 +259,7 @@ export default function GamePage() {
 
   useEffect(() => {
     if (screen !== 'game' || !gameActive || !canvasRef.current || !imagesLoaded) return;
+    lastFrameTimeRef.current = 0;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -327,17 +329,17 @@ export default function GamePage() {
       }
     };
 
-    const drawLines = () => {
+    const drawLines = (dtScale: number) => {
       if (images.laneLine?.complete && images.laneLine.naturalWidth > 0) {
         linesRef.current = linesRef.current.map((line) => {
-          const newY = line.y + speed * 4;
+          const newY = line.y + speed * 4 * dtScale;
           ctx.drawImage(images.laneLine!, line.x - 2, newY, 4, 90);
           return { x: line.x, y: newY > 660 ? -80 : newY };
         });
       } else {
         ctx.fillStyle = '#cccccc';
         linesRef.current = linesRef.current.map((line) => {
-          const newY = line.y + speed * 4;
+          const newY = line.y + speed * 4 * dtScale;
           ctx.fillRect(line.x - 2, newY, 4, 90);
           return { x: line.x, y: newY > 660 ? -80 : newY };
         });
@@ -352,8 +354,8 @@ export default function GamePage() {
       }
     };
 
-    const drawNeons = () => {
-      const moveY = speed * 3.5;
+    const drawNeons = (dtScale: number) => {
+      const moveY = speed * 3.5 * dtScale;
       neonsRef.current = neonsRef.current.map((n) => {
         const newY = n.y + moveY;
         ctx.fillStyle = n.color;
@@ -395,18 +397,18 @@ export default function GamePage() {
       }
     };
 
-    const drawCars = () => {
+    const drawCars = (dtScale: number) => {
       carsRef.current = carsRef.current
         .map((car) => {
           const speedMult = car.isOpp ? 6 : 3;
-          const newY = car.y + speed * speedMult;
+          const newY = car.y + speed * speedMult * dtScale;
           let newX = car.x;
           let newLane = car.lane;
           let newBlinkDir = car.blinkDir;
           const newBlinkTimer = car.blinkTimer + 1;
           if (car.targetLane !== car.lane) {
             const targetX = laneCenters[car.targetLane];
-            newX += (targetX - car.x) * 0.05;
+            newX += (targetX - car.x) * 0.05 * dtScale;
             if (Math.abs(newX - targetX) < 1) {
               newLane = car.targetLane;
               newBlinkDir = 0;
@@ -505,6 +507,12 @@ export default function GamePage() {
 
     const gameLoop = () => {
       if (!gameActive) return;
+      const now = performance.now();
+      if (lastFrameTimeRef.current === 0) lastFrameTimeRef.current = now;
+      let dt = (now - lastFrameTimeRef.current) / 1000;
+      lastFrameTimeRef.current = now;
+      dt = Math.min(dt, 0.1);
+      const dtScale = dt * 60;
       if (!tabVisibleRef.current || pausedRef.current) {
         gameLoopRef.current = requestAnimationFrame(gameLoop);
         return;
@@ -512,13 +520,13 @@ export default function GamePage() {
       const px = mousePosRef.current;
       const laneIndex = Math.max(0, Math.min(5, Math.round((px - ROAD_X - LANE_WIDTH / 2) / LANE_WIDTH)));
       const onOpposite = laneIndex >= 3;
-      const baseDelta = speed * 1.8 * (onOpposite ? 1.5 : 1);
+      const baseDelta = speed * 1.8 * (onOpposite ? 1.5 : 1) * dtScale;
       setScore((prev) => prev + baseDelta * scoreMultiplierRef.current);
       drawRoad();
-      drawLines();
-      drawNeons();
+      drawLines(dtScale);
+      drawNeons(dtScale);
       drawPlayer();
-      drawCars();
+      drawCars(dtScale);
       gameLoopRef.current = requestAnimationFrame(gameLoop);
     };
 
