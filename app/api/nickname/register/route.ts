@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { registerNickname, hasNickname } from '@/app/lib/store';
+import { registerNickname } from '@/app/lib/store';
 import { isRedisAvailable, registerNicknameRedis, hasNicknameRedis } from '@/app/lib/leaderboard';
 
 const PLAYER_ID_REGEX = /^[a-zA-Z0-9_-]{1,64}$/;

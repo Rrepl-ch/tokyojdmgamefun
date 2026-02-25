@@ -542,7 +542,7 @@ export default function GamePage() {
     playFun.getPoints().then((best) => {
       playFunBestRef.current = best;
     });
-  }, [screen, gameActive, playFun.isReady, playFun.getPoints]);
+  }, [screen, gameActive, playFun]);
 
   useEffect(() => {
     if (!gameActive && screen === 'game' && score > 0) {

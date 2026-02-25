@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { Profile } from './Profile';
 
 type LeaderboardEntry = {
@@ -66,7 +67,7 @@ export function Leaderboard({ onClose, currentPlayerId }: LeaderboardProps) {
                   <span className="leaderboard-rank">#{i + 1}</span>
                   <span className="leaderboard-avatar">
                     {e.avatar && e.avatar.startsWith('http') ? (
-                      <img src={e.avatar} alt="" referrerPolicy="no-referrer" className="leaderboard-avatar-img" />
+                      <Image src={e.avatar} alt="" width={32} height={32} referrerPolicy="no-referrer" className="leaderboard-avatar-img" unoptimized />
                     ) : (
                       (e.avatar || '😎')
                     )}

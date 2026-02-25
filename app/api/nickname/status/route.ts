@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getNicknameByPlayerId, hasNickname } from '@/app/lib/store';
-import { isRedisAvailable, getNicknameByPlayerIdRedis, hasNicknameRedis } from '@/app/lib/leaderboard';
+import { isRedisAvailable, getNicknameByPlayerIdRedis } from '@/app/lib/leaderboard';
 
 export async function GET(request: NextRequest) {
   const playerId = request.nextUrl.searchParams.get('playerId');

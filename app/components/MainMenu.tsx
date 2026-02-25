@@ -43,7 +43,7 @@ type MainMenuProps = {
   menuKey?: number;
 };
 
-export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menuKey = 0 }: MainMenuProps) {
+export function MainMenu({ nickname, setNickname, onNicknameSubmit: _onNicknameSubmit, onPlay, menuKey = 0 }: MainMenuProps) {
   const playerId = typeof window !== 'undefined' ? getOrCreateGuestId() : '';
   const [selectedCarId, setSelectedCarId] = useState(loadSelectedCarId);
   const [navTab, setNavTab] = useState<'howto' | 'car' | 'leaderboard' | 'profile' | null>(null);
