@@ -9,7 +9,10 @@ import { farcasterConfig } from "../farcaster.config";
 import { Providers } from "./providers";
 import "./globals.css";
 
-const playFunApiKey = process.env.NEXT_PUBLIC_PLAYFUN_API_KEY ?? '';
+/** Play.fun OGP key for SDK + ownership verification (Claim Ownership modal) */
+const playFunApiKey = process.env.NEXT_PUBLIC_PLAYFUN_API_KEY ?? 'b25c7a7d-0c34-4317-9746-a6e1223bd17b';
+/** Play.fun wallet address for ownership verification (Creator Dashboard) */
+const playFunWallet = '6zPTQRbVDgFtCwiYTb1YaruseiKZjcKZ4N6WQdGacAxu';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -21,6 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     other: {
       ...(playFunApiKey ? { 'x-ogp-key': playFunApiKey } : {}),
+      'playfun-wallet': playFunWallet,
       'base:app_id': '6983a406394cf3c20a8af57c',
       "fc:frame": JSON.stringify({
         version: farcasterConfig.miniapp.version,
@@ -61,10 +65,11 @@ export default function RootLayout({
               __html: `(function(){var t=localStorage.getItem('jdm_theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');})();`,
             }}
           />
-          {playFunApiKey && <meta name="x-ogp-key" content={playFunApiKey} />}
+          <meta name="x-ogp-key" content={playFunApiKey} id="ogp-key-meta" />
+          <meta name="playfun-wallet" content={playFunWallet} />
         </head>
         <body className={`${inter.variable} ${sourceCodePro.variable}`}>
-          {playFunApiKey && <Script src="https://sdk.play.fun" strategy="afterInteractive" />}
+          <Script src="https://sdk.play.fun" strategy="afterInteractive" />
           <ThemeProvider>
             <ThemeToggle />
             <WelcomePopup />
