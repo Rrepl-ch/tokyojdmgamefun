@@ -1,18 +1,16 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useAccount } from 'wagmi';
 
 const STORAGE_KEY = 'jdm_welcome_seen';
 
 export function WelcomePopup() {
-  const { address } = useAccount();
   const [show, setShow] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined' || !address) return;
+    if (typeof window === 'undefined') return;
     setShow(!localStorage.getItem(STORAGE_KEY));
-  }, [address]);
+  }, []);
 
   const handleClose = () => {
     localStorage.setItem(STORAGE_KEY, '1');
@@ -32,8 +30,8 @@ export function WelcomePopup() {
           Avoid crashes. The longer you last, the higher your score.
         </p>
         <ol className="welcome-popup-steps">
-          <li>Choose and mint a car</li>
-          <li>Hit PLAY and race</li>
+          <li>Choose your nickname (once, cannot change)</li>
+          <li>Pick a car and hit PLAY</li>
         </ol>
         <button type="button" className="menu-btn welcome-popup-btn" onClick={handleClose}>
           GOT IT

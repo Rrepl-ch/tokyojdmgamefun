@@ -1165,6 +1165,36 @@
   max-width: 280px;
 }
 
+/* Guest bar — play without wallet (e.g. play.fun) */
+.main-menu-guest-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border-radius: 12px;
+  font-size: 14px;
+  color: #aaaacc;
+}
+
+.main-menu-guest-bar span {
+  font-weight: 500;
+}
+
+.main-menu-guest-connect {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.main-menu-guest-connect .connect-btn.small {
+  padding: 8px 14px;
+  font-size: 13px;
+}
+
 /* Play blocked until car minted */
 .main-menu-play-blocked {
   margin-top: 16px;

@@ -4,8 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import './game.css';
 import { MainMenu } from './components/MainMenu';
 import { getCarById } from '@/app/types/cars';
-import { useAccount } from 'wagmi';
-import { updateProfileStats, syncProfileUpdateToApi } from '@/app/lib/profileStats';
+import { getOrCreateGuestId } from '@/app/lib/guestId';
+import { usePlayFun } from '@/app/lib/usePlayFun';
 
 type Car = {
   x: number;
@@ -43,7 +43,6 @@ export default function GamePage() {
   const [speed, setSpeed] = useState(1.5);
   const [imagesLoaded, setImagesLoaded] = useState(false);
   const [nickname, setNickname] = useState('');
-  const { address, chainId } = useAccount();
 
   const imagesRef = useRef<{
     player: HTMLImageElement | null;
@@ -87,6 +86,10 @@ export default function GamePage() {
   const pausedRef = useRef(false);
   const passedCountRef = useRef(0);
   const lastFrameTimeRef = useRef<number>(0);
+  const playFun = usePlayFun();
+  const playFunBestRef = useRef(0);
+  const playFunBestFetchedRef = useRef(false);
+  const playFunSubmittedRef = useRef(false);
 
   const createImage = (): HTMLImageElement => {
     if (typeof window !== 'undefined') return new Image();
@@ -149,8 +152,10 @@ export default function GamePage() {
     }, 3000);
   }, []);
 
-  const submitScore = useCallback(async (finalScore: number, carId: number, nick: string, addr: string | undefined, avatarOverride?: string, durationMs?: number) => {
-    if (leaderboardSubmittedRef.current || !nick.trim() || !addr) return;
+  const submitScore = useCallback(async (finalScore: number, carId: number, nick: string, avatarOverride?: string, durationMs?: number) => {
+    if (leaderboardSubmittedRef.current || !nick.trim()) return;
+    const playerId = typeof window !== 'undefined' ? getOrCreateGuestId() : '';
+    if (!playerId) return;
     leaderboardSubmittedRef.current = true;
     const avatar = avatarOverride ?? (typeof window !== 'undefined' ? (localStorage.getItem('crazy_racer_avatar') || '😎') : '😎');
     const duration = durationMs ?? (gameStartTimeRef.current > 0 ? Math.max(0, Date.now() - gameStartTimeRef.current) : 0);
@@ -161,7 +166,7 @@ export default function GamePage() {
         body: JSON.stringify({
           nickname: nick.trim(),
           score: Math.floor(finalScore),
-          address: addr,
+          playerId,
           carId,
           avatar,
           durationMs: duration,
@@ -206,6 +211,8 @@ export default function GamePage() {
     leaderboardSubmittedRef.current = false;
     passedCountRef.current = 0;
     mousePosRef.current = laneCenters[1];
+    playFunBestFetchedRef.current = false;
+    playFunSubmittedRef.current = false;
     setGameActive(true);
     setIsPaused(false);
   }, []);
@@ -234,28 +241,8 @@ export default function GamePage() {
   }, []);
 
   const onNicknameSubmit = useCallback(async (): Promise<boolean> => {
-    const nick = nickname.trim();
-    if (nick.length < 2 || nick.length > 20) return false;
-    try {
-      const check = await fetch('/api/nickname/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname: nick }),
-      });
-      const { available } = await check.json();
-      if (!available) return false;
-      if (!address) return false;
-      const reg = await fetch('/api/nickname/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nickname: nick, address }),
-      });
-      if (!reg.ok) return false;
-      return true;
-    } catch {
-      return false;
-    }
-  }, [nickname, address]);
+    return true;
+  }, []);
 
   useEffect(() => {
     if (screen !== 'game' || !gameActive || !canvasRef.current || !imagesLoaded) return;
@@ -548,20 +535,31 @@ export default function GamePage() {
     pausedRef.current = isPaused;
   }, [isPaused]);
 
+  // Fetch Play.fun best score when a round starts
+  useEffect(() => {
+    if (screen !== 'game' || !gameActive || !playFun.isReady || playFunBestFetchedRef.current) return;
+    playFunBestFetchedRef.current = true;
+    playFun.getPoints().then((best) => {
+      playFunBestRef.current = best;
+    });
+  }, [screen, gameActive, playFun.isReady, playFun.getPoints]);
+
   useEffect(() => {
     if (!gameActive && screen === 'game' && score > 0) {
       const durationMs = gameStartTimeRef.current > 0 ? Date.now() - gameStartTimeRef.current : 0;
-      submitScore(score, gameCarId, gameNickname, address, gameAvatar || undefined, durationMs);
-      const update = {
-        distance: Math.floor(score),
-        carsPassed: passedCountRef.current,
-        carId: gameCarId,
-        chainId,
-      };
-      updateProfileStats(address ?? undefined, update);
-      syncProfileUpdateToApi(address ?? undefined, update);
+      submitScore(score, gameCarId, gameNickname, gameAvatar || undefined, durationMs);
+
+      // Play.fun: submit improvement over best (endGame opens modal)
+      const improvement = Math.floor(score) - playFunBestRef.current;
+      if (playFun.isReady && improvement > 0 && !playFunSubmittedRef.current) {
+        playFunSubmittedRef.current = true;
+        playFun.addPoints(improvement);
+        playFun.endGame().then(() => {
+          playFunBestRef.current = Math.max(playFunBestRef.current, Math.floor(score));
+        });
+      }
     }
-  }, [gameActive, screen, score, gameCarId, gameNickname, gameAvatar, address, chainId, submitScore]);
+  }, [gameActive, screen, score, gameCarId, gameNickname, gameAvatar, submitScore, playFun]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

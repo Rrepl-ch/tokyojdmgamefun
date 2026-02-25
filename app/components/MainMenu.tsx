@@ -1,22 +1,14 @@
 'use client';
 
-import { useState, useCallback, useEffect, useMemo } from 'react';
-import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { useState, useCallback, useEffect } from 'react';
 import { CarSelect } from './CarSelect';
 import { Leaderboard } from './Leaderboard';
 import { BottomNav } from './BottomNav';
 import { HowToPlayPopup } from './HowToPlayPopup';
 import { Profile } from './Profile';
 import { CARS } from '@/app/types/cars';
-import { useOwnedCars, useMintCar } from '@/app/lib/useCrazyRacerContract';
-import { useNicknameStatus, useMintNickname } from '@/app/lib/useNicknameContract';
-import { useCheckInStatus, useCheckIn } from '@/app/lib/useCheckInContract';
-import { useBonusRace } from '@/app/lib/useBonusRaceContract';
-// import { useScoreRewardClaim } from '@/app/lib/useScoreRewardClaim';
-import { useMiniApp } from '@/app/providers/MiniAppProvider';
-import { getProfileStats, fetchProfileStatsFromApi } from '@/app/lib/profileStats';
+import { getOrCreateGuestId } from '@/app/lib/guestId';
 
-const STORAGE_OWNED = 'jdm_owned_cars';
 const STORAGE_SELECTED = 'jdm_selected_car';
 const STORAGE_AVATAR = 'crazy_racer_avatar';
 
@@ -25,18 +17,6 @@ export const AVATAR_EMOJIS = ['🔥', '💀', '😈', '😎', '🤘', '🎸', '�
 function loadAvatar(): string {
   if (typeof window === 'undefined') return '😎';
   return localStorage.getItem(STORAGE_AVATAR) || '😎';
-}
-
-function loadOwnedCarIds(): Set<number> {
-  if (typeof window === 'undefined') return new Set();
-  try {
-    const s = localStorage.getItem(STORAGE_OWNED);
-    if (!s) return new Set();
-    const arr = JSON.parse(s) as number[];
-    return new Set(Array.isArray(arr) ? arr : []);
-  } catch {
-    return new Set();
-  }
 }
 
 function loadSelectedCarId(): number {
@@ -64,47 +44,20 @@ type MainMenuProps = {
 };
 
 export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menuKey = 0 }: MainMenuProps) {
-  const [localOwned] = useState<Set<number>>(loadOwnedCarIds);
+  const playerId = typeof window !== 'undefined' ? getOrCreateGuestId() : '';
   const [selectedCarId, setSelectedCarId] = useState(loadSelectedCarId);
   const [navTab, setNavTab] = useState<'howto' | 'car' | 'leaderboard' | 'profile' | null>(null);
-  const [showNickMintConfirm, setShowNickMintConfirm] = useState(false);
   const [browsedCarId, setBrowsedCarId] = useState(0);
   const [nickError, setNickError] = useState('');
-  const [, setNickSuccess] = useState(false);
-  const { address, isConnected, chainId } = useAccount();
-  const { connect, connectors } = useConnect();
-  const { disconnect } = useDisconnect();
+  const [hasNickname, setHasNickname] = useState(false);
+  const [savedNickname, setSavedNickname] = useState('');
   const [record, setRecord] = useState<number | null>(null);
   const [avatar, setAvatar] = useState(() => loadAvatar());
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
-  const [totalGames, setTotalGames] = useState(0);
-  const [showBonusModal, setShowBonusModal] = useState(false);
-  // const [tokenBalanceWei, setTokenBalanceWei] = useState<string>('0');
-  // fetchTokenBalance, useScoreRewardClaim — отключено (реворды за заезд)
+  const [showNickConfirm, setShowNickConfirm] = useState(false);
+  const [registerPending, setRegisterPending] = useState(false);
 
-  const { owned: contractOwned, refetch: refetchOwned } = useOwnedCars();
-  const { canCheckInToday, streak, refetch: refetchCheckIn } = useCheckInStatus();
-  const { checkIn, isPending: checkInPending, contractDeployed: checkInDeployed } = useCheckIn(refetchCheckIn);
-  const { triggerBonus, isPending: bonusPending, isSuccess: bonusSuccess, contractDeployed: bonusDeployed } = useBonusRace();
-  const { mint, isPending: mintPending, contractDeployed } = useMintCar(browsedCarId, () => {
-    refetchOwned();
-  });
-
-  const { context: miniAppContext } = useMiniApp();
-  const baseUser = miniAppContext?.user;
-  const { hasNickname, nickname: contractNickname, refetch: refetchNick, contractDeployed: nickContractDeployed } = useNicknameStatus();
-  const { mint: mintNickname, isPending: mintNickPending, error: mintNickError } = useMintNickname(() => refetchNick());
-
-  useEffect(() => {
-    if (mintNickError) setNickError(mintNickError.message || 'Mint failed');
-  }, [mintNickError]);
-
-  const ownedCarIds = useMemo(() => {
-    if (contractDeployed && address) return contractOwned;
-    return localOwned;
-  }, [contractDeployed, address, contractOwned, localOwned]);
-
-  const mintingCarId = mintPending ? browsedCarId : null;
+  const ownedCarIds = new Set(CARS.map((c) => c.id));
 
   const setAvatarAndSave = useCallback((emoji: string) => {
     setAvatar(emoji);
@@ -117,82 +70,38 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
   }, [navTab, selectedCarId]);
 
   useEffect(() => {
-    if (!address) {
-      setRecord(null);
-      setTotalGames(0);
-      return;
-    }
-    fetch(`/api/leaderboard?address=${encodeURIComponent(address)}`)
+    if (!playerId) return;
+    fetch(`/api/nickname/status?playerId=${encodeURIComponent(playerId)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setHasNickname(!!data.hasNickname);
+        setSavedNickname(typeof data.nickname === 'string' ? data.nickname : '');
+      })
+      .catch(() => {});
+  }, [playerId, menuKey]);
+
+  useEffect(() => {
+    if (!playerId) return;
+    fetch(`/api/leaderboard?playerId=${encodeURIComponent(playerId)}`)
       .then((r) => r.json())
       .then((data) => setRecord(typeof data.best === 'number' ? data.best : null))
       .catch(() => setRecord(null));
-    const local = getProfileStats(address);
-    setTotalGames(local?.totalGames ?? 0);
-    fetchProfileStatsFromApi(address).then((s) => {
-      if (s) setTotalGames(s.totalGames);
-    });
-    // fetchTokenBalance(); — реворды за заезд отключены
-  }, [address, menuKey]);
+  }, [playerId, menuKey]);
 
   const refreshRecord = useCallback(() => {
-    if (!address) return;
-    fetch(`/api/leaderboard?address=${encodeURIComponent(address)}`)
+    if (!playerId) return;
+    fetch(`/api/leaderboard?playerId=${encodeURIComponent(playerId)}`)
       .then((r) => r.json())
       .then((data) => setRecord(typeof data.best === 'number' ? data.best : null))
       .catch(() => setRecord(null));
-  }, [address]);
+  }, [playerId]);
 
   const handleSelectCar = useCallback((carId: number) => {
     setSelectedCarId(carId);
     saveSelected(carId);
   }, []);
 
-  const handleMintFree = useCallback(
-    async (carId: number) => {
-      if (contractDeployed) {
-        if (!address) {
-          alert('Connect wallet to mint');
-          return;
-        }
-        if (carId !== browsedCarId) return;
-        mint();
-      } else {
-        alert('Contract not configured. Add NEXT_PUBLIC_CRAZY_RACER_CONTRACT to Vercel env and redeploy.');
-      }
-    },
-    [contractDeployed, address, browsedCarId, mint]
-  );
-
-  const handleMintPaid = useCallback(
-    async (carId: number) => {
-      if (!address) {
-        alert('Connect wallet to buy this car');
-        return;
-      }
-      if (contractDeployed) {
-        if (carId !== browsedCarId) return;
-        mint();
-      } else {
-        alert('Contract not configured. Add NEXT_PUBLIC_CRAZY_RACER_CONTRACT to Vercel env and redeploy.');
-      }
-    },
-    [contractDeployed, address, browsedCarId, mint]
-  );
-
-  const handleNicknameSubmit = useCallback(async () => {
-    setNickError('');
-    setNickSuccess(false);
-    if (!isConnected) {
-      setNickError('Connect wallet first to save nickname.');
-      return;
-    }
-    const ok = await onNicknameSubmit();
-    if (ok) setNickSuccess(true);
-    else setNickError('Nickname taken or invalid. Choose another.');
-  }, [onNicknameSubmit, isConnected]);
-
-  const handleMintNicknameClick = useCallback(() => {
-    setNickError('');
+  const handleNicknameConfirm = useCallback(async () => {
     const trimmed = nickname.trim();
     if (trimmed.length < 2 || trimmed.length > 20) {
       setNickError('Nickname must be 2–20 characters');
@@ -202,126 +111,64 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
       setNickError('Only letters, numbers and underscore');
       return;
     }
-    setShowNickMintConfirm(true);
-  }, [nickname]);
-
-  const handleMintNicknameConfirm = useCallback(() => {
-    const trimmed = nickname.trim();
-    if (trimmed.length >= 2 && trimmed.length <= 20) {
-      mintNickname(trimmed);
-      setShowNickMintConfirm(false);
+    setNickError('');
+    setRegisterPending(true);
+    try {
+      const res = await fetch('/api/nickname/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerId, nickname: trimmed }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setNickError(data.error || 'Failed to save nickname');
+        return;
+      }
+      setHasNickname(true);
+      setSavedNickname(trimmed);
+      setShowNickConfirm(false);
+    } catch {
+      setNickError('Network error');
+    } finally {
+      setRegisterPending(false);
     }
-  }, [nickname, mintNickname]);
+  }, [playerId, nickname]);
 
-  const effectiveNickname = baseUser
-    ? (baseUser.displayName || baseUser.username || 'Player')
-    : nickContractDeployed && hasNickname && contractNickname
-      ? contractNickname
-      : nickname.trim() || 'Player';
-
-  const effectiveAvatar = baseUser?.pfpUrl || avatar;
-
-  const canPlay = ownedCarIds.has(selectedCarId) && (
-    !!baseUser || !nickContractDeployed || hasNickname
-  );
-
-  const checkInMultiplier = streak >= 25 ? 1.5 : streak >= 10 ? 1.25 : 1;
-  const isFifthRace = bonusDeployed && totalGames > 0 && totalGames % 5 === 4;
+  const effectiveNickname = hasNickname ? savedNickname : (nickname.trim() || 'Guest');
+  const canPlay = hasNickname && ownedCarIds.has(selectedCarId);
 
   const handlePlay = useCallback(() => {
     setNickError('');
-    if (isFifthRace) {
-      setShowBonusModal(true);
-      triggerBonus();
-      return;
-    }
-    onPlay(selectedCarId, effectiveNickname, effectiveAvatar || undefined, { checkInMultiplier });
-  }, [effectiveNickname, effectiveAvatar, selectedCarId, onPlay, isFifthRace, triggerBonus, checkInMultiplier]);
-
-  const handleBonusModalPlay = useCallback(() => {
-    setShowBonusModal(false);
-    onPlay(selectedCarId, effectiveNickname, effectiveAvatar || undefined, { bonusRace: true, checkInMultiplier });
-  }, [selectedCarId, effectiveNickname, effectiveAvatar, onPlay, checkInMultiplier]);
+    onPlay(selectedCarId, effectiveNickname, avatar || undefined, { checkInMultiplier: 1 });
+  }, [effectiveNickname, avatar, selectedCarId, onPlay]);
 
   return (
     <div className="main-menu">
-      {!isConnected ? (
-        <div className="welcome-overlay">
-          <h1 className="welcome-title">Tokyo JDM</h1>
-          <p className="welcome-text">Connect your wallet to play</p>
-          {connectors.length > 0 && (
-            <div className="welcome-connect">
-              <button
-                type="button"
-                className="menu-btn connect-btn"
-                onClick={() => connect({ connector: connectors[1] ?? connectors[0] })}
-              >
-                Connect with Coinbase
-              </button>
-              <button
-                type="button"
-                className="menu-btn connect-btn secondary"
-                onClick={() => connect({ connector: connectors[2] ?? connectors[3] ?? connectors[0] })}
-              >
-                Other Wallets
-              </button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <>
-      {address && (
-        <div className="main-menu-wallet">
-          <span>
-            {baseUser
-              ? (baseUser.displayName || baseUser.username || 'Connected')
-              : (contractNickname || nickname?.trim() || 'Connected')}
-          </span>
-          <button type="button" className="link-btn" onClick={() => disconnect()}>
-            Disconnect
-          </button>
-        </div>
-      )}
-
       <h1 className="main-menu-title">Tokyo JDM</h1>
 
       <div className="main-menu-nick">
-        {baseUser ? (
+        {hasNickname ? (
           <div className="main-menu-nick-display">
             <span className="main-menu-nick-label">Nickname:</span>
-            <span className="main-menu-nick-value">{baseUser.displayName || baseUser.username || '—'}</span>
+            <span className="main-menu-nick-value">{savedNickname}</span>
           </div>
-        ) : nickContractDeployed && hasNickname ? (
-          <div className="main-menu-nick-display">
-            <span className="main-menu-nick-label">Nickname:</span>
-            <span className="main-menu-nick-value">{contractNickname || '—'}</span>
-          </div>
-        ) : nickContractDeployed ? (
-          <>
-            <input
-              type="text"
-              className="main-menu-input"
-              placeholder="Nickname (2–20 chars)"
-              value={nickname}
-              onChange={(e) => setNickname(e.target.value)}
-              maxLength={20}
-            />
-            <button type="button" className="menu-btn small mint-free" onClick={handleMintNicknameClick} disabled={mintNickPending}>
-              {mintNickPending ? 'MINTING…' : 'MINT NICKNAME'}
-            </button>
-          </>
         ) : (
           <>
             <input
               type="text"
               className="main-menu-input"
-              placeholder="Nickname"
+              placeholder="Choose nickname (once, cannot change)"
               value={nickname}
               onChange={(e) => setNickname(e.target.value)}
               maxLength={20}
             />
-            <button type="button" className="menu-btn small" onClick={handleNicknameSubmit}>
-              SAVE
+            <button
+              type="button"
+              className="menu-btn small mint-free"
+              onClick={() => setShowNickConfirm(true)}
+              disabled={registerPending || nickname.trim().length < 2}
+            >
+              {registerPending ? 'Saving…' : 'Save nickname'}
             </button>
           </>
         )}
@@ -330,21 +177,15 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
 
       <div className="main-menu-avatar-wrap">
         <span className="main-menu-avatar-label">Avatar</span>
-        {baseUser?.pfpUrl ? (
-          <div className="main-menu-avatar-circle main-menu-avatar-pfp" title={baseUser.displayName || baseUser.username}>
-            <img src={baseUser.pfpUrl} alt="" referrerPolicy="no-referrer" />
-          </div>
-        ) : (
         <button
           type="button"
           className="main-menu-avatar-circle"
           onClick={() => setShowAvatarPicker((v) => !v)}
-          title="Нажми, чтобы сменить"
+          title="Change avatar"
         >
           <span className="main-menu-avatar-emoji">{avatar}</span>
         </button>
-        )}
-        {!baseUser && showAvatarPicker && (
+        {showAvatarPicker && (
           <div className="main-menu-avatar-picker">
             <div className="main-menu-avatar-grid">
               {AVATAR_EMOJIS.map((emoji) => (
@@ -363,11 +204,7 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
         )}
       </div>
 
-      <p className="main-menu-record">
-        Record: {record !== null ? record : '—'}
-      </p>
-
-      {/* Реворды за заезд (Tokens + Withdraw) отключены. См. useScoreRewardClaim, tokenBalanceWei, fetchTokenBalance. */}
+      <p className="main-menu-record">Record: {record !== null ? record : '—'}</p>
 
       <div className="main-menu-car">
         <span>{CARS[selectedCarId]?.name ?? '—'}</span>
@@ -384,68 +221,31 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
               PLAY
             </button>
             <p className="main-menu-play-hint">
-              {!ownedCarIds.has(selectedCarId)
-                ? 'Mint this car first to drive'
-                : nickContractDeployed && !hasNickname
-                  ? 'Mint nickname first to play'
-                  : 'Mint this car first to drive'}
+              {!hasNickname ? 'Choose and save your nickname first' : 'Choose a car to play'}
             </p>
           </div>
         )}
-        {checkInDeployed && isConnected && (
-          <button
-            type="button"
-            className="menu-btn check-in-btn"
-            onClick={() => checkIn()}
-            disabled={!canCheckInToday || checkInPending}
-          >
-            {checkInPending ? '…' : canCheckInToday ? 'Check-in' : `Streak ${streak}`}
-          </button>
-        )}
       </div>
 
-      {showBonusModal && (
-        <div className="menu-overlay" onClick={() => {}}>
-          <div className="menu-panel bonus-modal" onClick={(e) => e.stopPropagation()}>
-            {!bonusSuccess ? (
-              <>
-                <p className="bonus-modal-text">Waiting for confirmation…</p>
-                {bonusPending && <div className="bonus-modal-spinner" />}
-              </>
-            ) : (
-              <button type="button" className="menu-btn play-btn" onClick={handleBonusModalPlay}>
-                PLAY
-              </button>
-            )}
-          </div>
-        </div>
-      )}
+      <BottomNav activeTab={navTab} onTab={(tab) => setNavTab(tab)} />
 
-      <BottomNav
-        activeTab={navTab}
-        onTab={(tab) => setNavTab(tab)}
-      />
-
-      {navTab === 'howto' && (
-        <HowToPlayPopup onClose={() => setNavTab(null)} />
-      )}
+      {navTab === 'howto' && <HowToPlayPopup onClose={() => setNavTab(null)} />}
       {navTab === 'leaderboard' && (
         <Leaderboard
           onClose={() => {
             refreshRecord();
             setNavTab(null);
           }}
-          currentAddress={address ?? undefined}
+          currentPlayerId={playerId}
         />
       )}
       {navTab === 'profile' && (
         <Profile
           onClose={() => setNavTab(null)}
           nickname={effectiveNickname}
-          avatar={effectiveAvatar}
-          address={address ?? undefined}
+          avatar={avatar}
           bestScore={record}
-          chainId={chainId}
+          playerId={playerId}
         />
       )}
       {navTab === 'car' && (
@@ -457,11 +257,11 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
               selectedCarId={selectedCarId}
               ownedCarIds={ownedCarIds}
               onSelect={handleSelectCar}
-              onMintFree={handleMintFree}
-              onMintPaid={handleMintPaid}
+              onMintFree={() => {}}
+              onMintPaid={() => {}}
               onPrevCar={() => setBrowsedCarId((prev) => Math.max(0, prev - 1))}
               onNextCar={() => setBrowsedCarId((prev) => Math.min(CARS.length - 1, prev + 1))}
-              mintingCarId={mintingCarId}
+              mintingCarId={null}
             />
             <button type="button" className="menu-btn" onClick={() => setNavTab(null)}>
               CLOSE
@@ -469,26 +269,36 @@ export function MainMenu({ nickname, setNickname, onNicknameSubmit, onPlay, menu
           </div>
         </div>
       )}
-      {showNickMintConfirm && (
-        <div className="menu-overlay" onClick={() => setShowNickMintConfirm(false)}>
+      {showNickConfirm && (
+        <div className="menu-overlay" onClick={() => setShowNickConfirm(false)}>
           <div className="menu-panel" onClick={(e) => e.stopPropagation()}>
-            <h2 className="menu-title">Confirm nickname mint</h2>
+            <h2 className="menu-title">Confirm nickname</h2>
             <p className="nick-mint-warning">
-              You can mint a nickname only once per wallet. It cannot be changed or transferred later.
+              You can choose your nickname only once. It cannot be changed later.
             </p>
-            <p className="nick-mint-preview">Nickname: <strong>{nickname.trim()}</strong></p>
+            <p className="nick-mint-preview">
+              Nickname: <strong>{nickname.trim()}</strong>
+            </p>
             <div className="nick-mint-actions">
-              <button type="button" className="menu-btn" onClick={handleMintNicknameConfirm} disabled={mintNickPending}>
-                {mintNickPending ? 'MINTING…' : 'CONFIRM'}
+              <button
+                type="button"
+                className="menu-btn"
+                onClick={handleNicknameConfirm}
+                disabled={registerPending}
+              >
+                {registerPending ? 'Saving…' : 'Confirm'}
               </button>
-              <button type="button" className="menu-btn secondary" onClick={() => setShowNickMintConfirm(false)} disabled={mintNickPending}>
-                CANCEL
+              <button
+                type="button"
+                className="menu-btn secondary"
+                onClick={() => setShowNickConfirm(false)}
+                disabled={registerPending}
+              >
+                Cancel
               </button>
             </div>
           </div>
         </div>
-      )}
-        </>
       )}
     </div>
   );

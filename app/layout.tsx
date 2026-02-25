@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, Source_Code_Pro } from "next/font/google";
 import { SafeArea } from "./components/SafeArea";
 import { ThemeProvider } from "./providers/ThemeProvider";
@@ -7,6 +8,8 @@ import { WelcomePopup } from "./components/WelcomePopup";
 import { farcasterConfig } from "../farcaster.config";
 import { Providers } from "./providers";
 import "./globals.css";
+
+const playFunApiKey = process.env.NEXT_PUBLIC_PLAYFUN_API_KEY ?? '';
 
 export async function generateMetadata(): Promise<Metadata> {
   return {
@@ -17,6 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
       apple: '/icon.png',
     },
     other: {
+      ...(playFunApiKey ? { 'x-ogp-key': playFunApiKey } : {}),
       'base:app_id': '6983a406394cf3c20a8af57c',
       "fc:frame": JSON.stringify({
         version: farcasterConfig.miniapp.version,
@@ -57,8 +61,10 @@ export default function RootLayout({
               __html: `(function(){var t=localStorage.getItem('jdm_theme');document.documentElement.setAttribute('data-theme',t==='light'?'light':'dark');})();`,
             }}
           />
+          {playFunApiKey && <meta name="x-ogp-key" content={playFunApiKey} />}
         </head>
         <body className={`${inter.variable} ${sourceCodePro.variable}`}>
+          {playFunApiKey && <Script src="https://sdk.play.fun" strategy="afterInteractive" />}
           <ThemeProvider>
             <ThemeToggle />
             <WelcomePopup />

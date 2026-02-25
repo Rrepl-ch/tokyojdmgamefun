@@ -3,11 +3,18 @@
 import { useEffect, useState } from 'react';
 import { Profile } from './Profile';
 
-type LeaderboardEntry = { nickname: string; score: number; address: string; carId: number; timestamp: number; avatar?: string };
+type LeaderboardEntry = {
+  nickname: string;
+  score: number;
+  playerId: string;
+  carId: number;
+  timestamp: number;
+  avatar?: string;
+};
 
-type LeaderboardProps = { onClose: () => void; currentAddress?: string };
+type LeaderboardProps = { onClose: () => void; currentPlayerId?: string };
 
-export function Leaderboard({ onClose, currentAddress }: LeaderboardProps) {
+export function Leaderboard({ onClose, currentPlayerId }: LeaderboardProps) {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEntry, setSelectedEntry] = useState<LeaderboardEntry | null>(null);
@@ -21,7 +28,7 @@ export function Leaderboard({ onClose, currentAddress }: LeaderboardProps) {
       .finally(() => setLoading(false));
   }, []);
 
-  const addr = currentAddress?.toLowerCase();
+  const myId = currentPlayerId ?? '';
 
   if (selectedEntry) {
     return (
@@ -29,8 +36,8 @@ export function Leaderboard({ onClose, currentAddress }: LeaderboardProps) {
         onClose={() => setSelectedEntry(null)}
         nickname={selectedEntry.nickname?.trim() || 'Player'}
         avatar={selectedEntry.avatar ?? ''}
-        address={selectedEntry.address}
         bestScore={selectedEntry.score}
+        playerId={selectedEntry.playerId}
         isOwnProfile={false}
       />
     );
@@ -49,21 +56,21 @@ export function Leaderboard({ onClose, currentAddress }: LeaderboardProps) {
             ) : (
               entries.map((e, i) => (
                 <li
-                  key={`${e.address}-${i}`}
+                  key={`${e.playerId}-${i}`}
                   role="button"
                   tabIndex={0}
-                  className={`leaderboard-row ${e.address.toLowerCase() === addr ? 'leaderboard-row-me' : ''}`}
+                  className={`leaderboard-row ${e.playerId === myId ? 'leaderboard-row-me' : ''}`}
                   onClick={() => setSelectedEntry(e)}
                   onKeyDown={(ev) => (ev.key === 'Enter' || ev.key === ' ') && setSelectedEntry(e)}
                 >
                   <span className="leaderboard-rank">#{i + 1}</span>
                   <span className="leaderboard-avatar">
-                  {e.avatar && e.avatar.startsWith('http') ? (
-                    <img src={e.avatar} alt="" referrerPolicy="no-referrer" className="leaderboard-avatar-img" />
-                  ) : (
-                    (e.avatar || '😎')
-                  )}
-                </span>
+                    {e.avatar && e.avatar.startsWith('http') ? (
+                      <img src={e.avatar} alt="" referrerPolicy="no-referrer" className="leaderboard-avatar-img" />
+                    ) : (
+                      (e.avatar || '😎')
+                    )}
+                  </span>
                   <span className="leaderboard-nick">{e.nickname?.trim() || 'Player'}</span>
                   <span className="leaderboard-score">{e.score}</span>
                 </li>
